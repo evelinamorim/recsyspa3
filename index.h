@@ -92,7 +92,7 @@ class Index{
     char** buffer_chaves;
 
     //indice filme->termos
-    unordered_map<int,vector<int> > idx_film_term;
+    unordered_map<int,unordered_map<int,int> > idx_film_term;
 
     //indice term->film
     unordered_map<int,vector<int> > idx_term_film;
