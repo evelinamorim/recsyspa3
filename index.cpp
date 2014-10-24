@@ -338,3 +338,7 @@ void Index::read_idx_term(){
     }
     fd_term.close();
 }
+
+unordered_map<int,int> Index::get_term_list(int item){
+    return idx_film_term[item];
+}

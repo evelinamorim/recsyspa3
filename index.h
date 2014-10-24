@@ -120,6 +120,8 @@ class Index{
 	void read_voc();
 	void read_idx_film();
 	void read_idx_term();
+
+	unordered_map<int,int> get_term_list(int item);
 };
 
 #endif
