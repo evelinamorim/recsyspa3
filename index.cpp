@@ -21,9 +21,9 @@
 using namespace std;
 
 //const vector<string> Index::ftrs_bow = {"Plot"};
-const string Index::file_name_voc="voc.txt";
-const string Index::file_name_idxfilm="idx_film.txt";
-const string Index::file_name_idxterm="idx_term.txt";
+const string Index::file_name_voc="voc_toy.txt";
+const string Index::file_name_idxfilm="idx_film_toy.txt";
+const string Index::file_name_idxterm="idx_term_toy.txt";
 
 Index::Index(const vector<string> x):ftrs_bow(x){
     buffer_chaves = new char*[TAM_VOC];
@@ -143,6 +143,28 @@ void Index::read_movie(string line,vector<int>& pos_key_bow){
     //cout<<"Terminou read_movie"<<endl;
 }
 
+//aplica idf na matriz idx_film_term
+void Index::apply_idf(){
+
+    unordered_map<int,unordered_map<int,float> >::iterator it_film = idx_film_term.begin();
+    unordered_map<int,unordered_map<int,float> >::iterator it_film_end = idx_film_term.end();
+    float n = idx_film_term.size();
+
+    while (it_film!=it_film_end){
+	//percorrendo os termos do film atual
+	unordered_map<int,float>::iterator it_term = it_film->second.begin();
+	unordered_map<int,float>::iterator it_term_end = it_film->second.end();
+
+	while (it_term!=it_term_end){
+	    float ni = idx_term_film[it_term->first].size();
+	    //TODO: -inf?
+	    it_term->second = it_term->second*log(n/ni);
+	    it_term++;
+	}
+	it_film++;
+    }
+}
+
 void Index::read(string file_name){
     ifstream data(file_name);
     //posicao das features desejadas e definidas como constantes
@@ -151,10 +173,13 @@ void Index::read(string file_name){
     if (data.is_open()){
 	string linha;
 	while(getline(data,linha)){
-	    //cout<<linha<<endl;
+	    //cout<<"--> "<<linha<<endl;
+	    //read_movie calcula primeiro o term frequency
 	    read_movie(linha,pos_key);
+
 	    linha.clear();
 	}
+	apply_idf();
     }
     data.close();
     //cout<<"Terminou read"<<endl;
@@ -189,17 +214,17 @@ void Index::write_idx_film(){
     ofstream fd_idx_film(file_name_idxfilm,ios::out);
 
     if (fd_idx_film.is_open()){
-         unordered_map<int,unordered_map<int,int> >::iterator it_idx_film = idx_film_term.begin();
-         unordered_map<int,unordered_map<int,int> >::iterator it_idx_film_end = idx_film_term.end();
+         unordered_map<int,unordered_map<int,float> >::iterator it_idx_film = idx_film_term.begin();
+         unordered_map<int,unordered_map<int,float> >::iterator it_idx_film_end = idx_film_term.end();
 	// cout<<"-->"<<idx_film_term.size()<<endl;
 	 while (it_idx_film!=it_idx_film_end){
 	     fd_idx_film << it_idx_film->first;
 
-	     unordered_map<int,int>::iterator it_terms = it_idx_film->second.begin();
-	     unordered_map<int,int>::iterator it_terms_end = it_idx_film->second.end();
+	     unordered_map<int,float>::iterator it_terms = it_idx_film->second.begin();
+	     unordered_map<int,float>::iterator it_terms_end = it_idx_film->second.end();
 	     
 	     while (it_terms!=it_terms_end){
-		 fd_idx_film << " "<< (*it_terms).first << " " <<  (*it_terms).second;
+		 fd_idx_film << " "<< (*it_terms).first << " " <<  setprecision(3) << (*it_terms).second;
 		 it_terms++;
 	     }
 	     fd_idx_film << endl;
@@ -236,6 +261,7 @@ void Index::write_idx_term(){
 
 void Index::read_voc(){
     ifstream fd_voc(file_name_voc,ios::in);
+    //cout<<"Nome do arquivo vocabulario: "<<file_name_voc<<endl;
 
     if (fd_voc.is_open()){
 
@@ -247,12 +273,14 @@ void Index::read_voc(){
 	while(getline(fd_voc,linha)){
 	    tokenize(linha,' ',toks);
 	    string term,num;
+	    //cout<<"#tokens: "<<toks.size()<<endl;
 
 	    num = toks.back();
 	    toks.pop_back();
 
 	    term = toks.back();
 	    toks.pop_back();
+	   // cout<<"tokens: "<<num<<" "<<term<<endl;
 
 
 	    memset(palavra,'\0',MAIOR_PALAVRA+2);
@@ -260,6 +288,7 @@ void Index::read_voc(){
 
 	    if (palavra!=NULL){
 		int tamanho_palavra = strlen(palavra)+1;
+		buffer_chaves[i] = new char[tamanho_palavra+1];
 		memset(buffer_chaves[i],'\0',tamanho_palavra+1);
 		strncpy(buffer_chaves[i],palavra,tamanho_palavra);
 		vocabulario[buffer_chaves[i]] = i;
@@ -279,7 +308,7 @@ void Index::read_idx_film(){
 	string linha;
 	vector<string> toks;
 	while (getline(fd_film,linha)){
-	    unordered_map<int,int> lst_terms;
+	    unordered_map<int,float> lst_terms;
 	    tokenize(linha,' ',toks);
 
 	    //lendo a lista de termos associado ao item, que eh o 
@@ -289,12 +318,11 @@ void Index::read_idx_film(){
 
 		t = toks.back();
 		toks.pop_back();
-		int freq = atoi(t.c_str());
+		float freq = atof(t.c_str());
 
 		t = toks.back();
 		toks.pop_back();
 		int term = atoi(t.c_str());
-
 		lst_terms[term] = freq;
 	    }
 	    t = toks.back();
@@ -339,6 +367,10 @@ void Index::read_idx_term(){
     fd_term.close();
 }
 
-unordered_map<int,int> Index::get_term_list(int item){
+unordered_map<int,float> Index::get_term_list(int item){
     return idx_film_term[item];
+}
+
+int Index::get_number_items(){
+    return idx_film_term.size();
 }

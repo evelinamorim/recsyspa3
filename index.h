@@ -24,6 +24,8 @@
 #include <sstream>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
+#include <iomanip>
 
 #include "util.h"
 
@@ -92,7 +94,7 @@ class Index{
     char** buffer_chaves;
 
     //indice filme->termos
-    unordered_map<int,unordered_map<int,int> > idx_film_term;
+    unordered_map<int,unordered_map<int,float> > idx_film_term;
 
     //indice term->film
     unordered_map<int,vector<int> > idx_term_film;
@@ -112,6 +114,7 @@ class Index{
 	//separa esta info para poder mapear 
 	void read_movie(string line,vector<int>& pos_key_bow);
 	void read(string file_name);
+        void apply_idf();
 
 	void write_voc();
 	void write_idx_film();
@@ -121,7 +124,8 @@ class Index{
 	void read_idx_film();
 	void read_idx_term();
 
-	unordered_map<int,int> get_term_list(int item);
+	unordered_map<int,float> get_term_list(int item);
+	int get_number_items();
 };
 
 #endif

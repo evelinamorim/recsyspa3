@@ -26,7 +26,7 @@ int main(int argc,char** argv){
     string arquivoItem = argv[1];
 
     if (argc != 2){
-	cout<<"*** Error *** Worng Number of Arguments "<<endl;
+	cout<<"*** Error *** Wrong Number of Arguments "<<endl;
 	cout<<"Usage: ./tp3-index itemfilename "<<endl;
 	return -1;
     }
